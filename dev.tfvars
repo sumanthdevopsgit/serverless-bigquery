@@ -1,6 +1,6 @@
-project_id            = "cs-host-250323f4c1e749beab0804"
+project_id            = "cs-host-25039beab0804"
 region                = "asia-south1"
-service_account_email = "terraform-poc1@cs-host-250323f4c1e749beab0804.iam.gserviceaccount.com"
+service_account_email = "terraform-poc1@cs-host-2503eab0804.iam.gserviceaccount.com"
 dataset_id            = "dataset_test"
 topic_names = [
   "process-source-topic-test",
@@ -69,8 +69,8 @@ sql_instances = [
     tier              = "db-n1-standard-1"
     activation_policy = "ALWAYS"
     enable_ipv4       = true
-    sql_user_name     = "innominds"
-    sql_user_password = "Innominds@123"
+    sql_user_name     = "ininds"
+    sql_user_password = "Inn@123"
   },
   {
     name              = "products1"
@@ -78,8 +78,8 @@ sql_instances = [
     tier              = "db-n1-standard-1"
     activation_policy = "ALWAYS"
     enable_ipv4       = true
-    sql_user_name     = "innominds"
-    sql_user_password = "Innominds@123"
+    sql_user_name     = "inds"
+    sql_user_password = "Innds@123"
   },
   {
     name              = "orders1"
@@ -87,8 +87,8 @@ sql_instances = [
     tier              = "db-n1-standard-1"
     activation_policy = "ALWAYS"
     enable_ipv4       = true
-    sql_user_name     = "innominds"
-    sql_user_password = "Innominds@123"
+    sql_user_name     = "innds"
+    sql_user_password = "Inds@123"
   }
 ]
 bucket_name = "terraform-autozone-test-cloud-functions"
