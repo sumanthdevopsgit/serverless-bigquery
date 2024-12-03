@@ -1,0 +1,593 @@
+select now()
+SET time_zone = '+05:30';
+
+CREATE DATABASE customerdb;
+
+USE customerdb;
+
+CREATE TABLE customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    location VARCHAR(255),
+    contactNo VARCHAR(15),
+    creation_date DATETIME NOT NULL
+);
+-------------------------------------
+CREATE DATABASE productdb;
+
+USE productdb;
+
+CREATE TABLE products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL,
+    product_desc TEXT,
+    price DECIMAL(10, 2),
+    in_stock BOOLEAN,
+    launch_date DATETIME NOT NULL
+);
+ALTER TABLE products MODIFY in_stock VARCHAR(3);
+-------------------------------------------
+CREATE DATABASE orderdb;
+
+USE orderdb;
+
+CREATE TABLE orders (
+    order_id INT AUTO_INCREMENT PRIMARY KEY,
+    cust_id INT NOT NULL,
+    product_id INT NOT NULL,
+    product_qty INT NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL,
+    order_date DATETIME NOT NULL
+);
+----------------------------------
+ALTER TABLE products
+MODIFY COLUMN launch_date DATETIME NOT NULL;
+
+pip install mysql-connector-python
+
+cat cusotmers.py
+import mysql.connector
+from faker import Faker
+from datetime import datetime, timedelta
+import re  # For cleaning phone numbers
+
+# Initialize Faker for generating dummy data
+fake = Faker(['en_US'])  # Use American locale
+
+# Database connection details
+db_config = {
+    "host": "35.200.158.52",       # Replace with your Cloud SQL host
+    "user": "root",           # Replace with your username
+    "password": "Innominds@123",     # Replace with your password
+    "database": "customerdb"  # Replace with your database name
+}
+
+# Function to clean phone numbers
+def clean_phone_number(phone):
+    """Remove non-numeric characters from the phone number."""
+    return re.sub(r'\D', '', phone)
+
+# Connect to the database
+try:
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor()
+    print("Connected to the database successfully.")
+
+    # Insert dummy data
+    def populate_customers(total_records=1000):
+        print(f"Populating {total_records} dummy customer records...")
+
+        # Prepare the SQL insert statement
+        insert_query = """
+            INSERT INTO customers (name, location, contactNo, creation_date)
+            VALUES (%s, %s, %s, %s)
+        """
+
+        # Generate records
+        data = []
+        for i in range(total_records):
+            name = fake.name()
+            location = fake.city() + ", " + fake.state()  # American city and state
+            raw_contactNo = fake.phone_number()  # Raw phone number
+            contactNo = clean_phone_number(raw_contactNo)[:15]  # Clean and limit to 15 digits
+            creation_date = datetime.now() - timedelta(days=i % 10)  # Last 10 days
+
+            data.append((name, location, contactNo, creation_date.strftime('%Y-%m-%d %H:%M:%S')))
+
+        # Execute the batch insert
+        cursor.executemany(insert_query, data)
+        connection.commit()
+        print(f"Successfully inserted {cursor.rowcount} records.")
+
+    # Call the function to populate the data
+    populate_customers()
+
+except mysql.connector.Error as err:
+    print(f"Error: {err}")
+finally:
+    if connection.is_connected():
+        cursor.close()
+        connection.close()
+        print("Database connection closed.")
+
+python customers.py
+============================================
+cat products.py
+import mysql.connector
+from faker import Faker
+from datetime import datetime, timedelta
+import random
+
+# Initialize Faker for generating dummy data
+fake = Faker()
+
+# Database connection details
+db_config = {
+    "host": "34.93.65.3",       # Replace with your Cloud SQL host
+    "user": "root",       # Replace with your username
+    "password": "Innominds@123", # Replace with your password
+    "database": "productdb"        # Replace with your database name
+}
+
+# AutoZone related product names
+product_names = [
+    "Most Popular Parts", "Lug Nut", "Battery Booster / Jump Starter Pack", "Tire Repair Kit", 
+    "Non Automotive Spark Plug", "Electrical Wire Connector", "Trailer Hitch", "Power Sport Battery", 
+    "License Plate Frame", "Marine Battery", "Portable Tire Inflator", "Decals and Emblems", 
+    "LED Light Pods and Lighting Kits", "Castrol", "Chevron", "Driven Racing Oil", "K&N", 
+    "LIQUI MOLY", "Lucas Oil Products", "MaxPower", "Mobil", "Mobil 1", "Motorcraft", "Pennzoil", 
+    "Poulan", "Quaker State", "Quicksilver", "Royal Purple", "Shell ROTELLA", "Sierra Marine", 
+    "Sta-Mix", "STP", "Triax Lubricants", "TruFuel", "Valvoline", "Baer Brake Systems", "Brembo", 
+    "Crown Automotive", "Duralast", "Duralast Elite", "Duralast Gold", "Duralast Severe Duty", 
+    "TotalPro"
+]
+
+# Connect to the database
+try:
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor()
+    print("Connected to the database successfully.")
+
+    # Insert dummy data
+    def populate_products(total_records=1000):
+        print(f"Populating {total_records} dummy product records...")
+        
+        # Prepare the SQL insert statement
+        insert_query = """
+            INSERT INTO products (product_name, product_desc, price, in_stock, launch_date)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        
+        # Generate records
+        data = []
+        for i in range(total_records):
+            product_name = random.choice(product_names)
+            product_desc = fake.text(max_nb_chars=50)  # Random short description
+            price = round(random.uniform(10.0, 500.0), 2)  # Random price between 10 and 500
+            in_stock = random.choice(["Yes", "No"])  # Random "Yes" or "No" for stock
+            launch_date = datetime.now() - timedelta(days=i % 10)  # Last 10 days
+            
+            data.append((product_name, product_desc, price, in_stock, launch_date.strftime('%Y-%m-%d %H:%M:%S')))
+        
+        # Execute the batch insert
+        cursor.executemany(insert_query, data)
+        connection.commit()
+        print(f"Successfully inserted {cursor.rowcount} records.")
+
+    # Call the function to populate the data
+    populate_products()
+
+except mysql.connector.Error as err:
+    print(f"Error: {err}")
+finally:
+    if connection.is_connected():
+        cursor.close()
+        connection.close()
+        print("Database connection closed.")
+
+
+python product.py
+=======================================		
+cat order.py
+import mysql.connector
+from datetime import datetime, timedelta
+import random
+
+# Database connection details
+db_config = {
+    "host": "34.100.174.201",       # Replace with your Cloud SQL host
+    "user": "root",       # Replace with your username
+    "password": "Innominds@123", # Replace with your password
+    "database": "orderdb"          # Replace with your database name
+}
+
+# Connect to the database
+try:
+    connection = mysql.connector.connect(**db_config)
+    cursor = connection.cursor()
+    print("Connected to the database successfully.")
+
+    # Insert dummy data
+    def populate_orders(total_records=1000):
+        print(f"Populating {total_records} dummy order records...")
+        
+        # Prepare the SQL insert statement
+        insert_query = """
+            INSERT INTO orders (cust_id, product_id, product_qty, total_price, order_date)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        
+        # Generate records
+        data = []
+        for i in range(total_records):
+            cust_id = random.randint(1, 1000)  # Random customer_id (assume 1,000 customers)
+            product_id = random.randint(1, 1000)  # Random product_id (assume 1,000 products)
+            product_qty = random.randint(1, 10)  # Random quantity between 1 and 10
+            price = round(random.uniform(10.0, 500.0), 2)  # Random price between 10 and 500
+            total_price = round(price * product_qty, 2)
+            order_date = datetime.now() - timedelta(days=i % 10)  # Last 10 days
+            
+            data.append((cust_id, product_id, product_qty, total_price, order_date.strftime('%Y-%m-%d %H:%M:%S')))
+        
+        # Execute the batch insert
+        cursor.executemany(insert_query, data)
+        connection.commit()
+        print(f"Successfully inserted {cursor.rowcount} records.")
+
+    # Call the function to populate the data
+    populate_orders()
+
+except mysql.connector.Error as err:
+    print(f"Error: {err}")
+finally:
+    if connection.is_connected():
+        cursor.close()
+        connection.close()
+        print("Database connection closed.")
+		
+		
+python orders.py 
+
+
+Cloud schedulers (3) : customers, products, orders
+Topics (2) :  process-source-topic, populate-bigquery-topic
+Cloud Functions (2) : process-source-db, populate-bigquery 
+Cloud SQL (3) : Customers, products, orders
+BigQuery 
+Dataset : ordermanagement
+Tables : customers, products, orders
+Schema for all the tables in both cloudSql and BigQuery, since we follow same structure for now.
+Table name: customers
+Schema : id, name, location, contactNo, creation_date
+Table name: products
+Schema: Id,  product_name, product_desc, price, in_stock(boolean), launch_date
+Table Name: orders
+schema: Order_id, cust_id, Product_id, Product_qty, Total_price, Order_date
+
+function:
+entry point: main
+---------
+main.py
+---------
+from google.cloud import pubsub_v1
+import base64
+import json
+import pymysql
+from datetime import datetime, date
+import decimal
+
+publisher = pubsub_v1.PublisherClient()
+
+def main(event, context):
+    """Main function to handle incoming event from Pub/Sub."""
+    try:
+        # Decode Pub/Sub message
+        message = base64.b64decode(event['data']).decode('utf-8')
+        db_details = json.loads(message)
+
+        # Extract details from payload
+        project_id = db_details.get("project_id")
+        db_host = db_details.get("db_host")
+        db_user = db_details.get("db_user")
+        db_password = db_details.get("db_password")
+        db_name = db_details.get("db_name")
+        table_name = db_details.get("table_name")
+        operation = db_details.get("operation")
+        second_topic = db_details.get("second_topic")
+
+        print(f"Connecting to DB: {db_name} at {db_host} with user {db_user}")
+        print(f"Second Pub/Sub Topic: {second_topic}")
+        print(f"Project ID: {project_id}, Table: {table_name}")
+
+        # Connect to MySQL
+        connection = None
+        try:
+            connection = pymysql.connect(
+                host=db_host,
+                user=db_user,
+                password=db_password,
+                database=db_name
+            )
+            print("Database connection successful.")
+
+            # Perform the requested operation (fetch data)
+            if operation == "fetch":
+                with connection.cursor() as cursor:
+                    # Dynamically construct query based on table_name
+                    from datetime import datetime, timedelta
+                    time = (datetime.utcnow() - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
+                    #time = (datetime.utcnow() - timedelta(minutes=5)).strftime('%Y-%m-%d %H:%M:%S')
+                    #time = "2024-11-21"
+                    
+                    if table_name == "customers":
+                        query = f"""
+                            SELECT id, name, contactNo, location, creation_date 
+                            FROM {table_name} 
+                            WHERE creation_date >= '{time}';
+                        """
+                    elif table_name == "products":
+                        query = f"""
+                            SELECT id, product_name, product_desc, price, in_stock, launch_date 
+                            FROM {table_name} 
+                            WHERE launch_date >= '{time}';
+                        """
+                    elif table_name == "orders":
+                        query = f"""
+                            SELECT order_id, cust_id, product_id, product_qty, total_price, order_date 
+                            FROM {table_name} 
+                            WHERE order_date >= '{time}';
+                        """
+                    else:
+                        print(f"Unknown table: {table_name}")
+                        return
+                    
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
+
+                    # Format data for the second Pub/Sub topic
+                    processed_data = format_data(rows, table_name)
+
+                    # Publish data to the second Pub/Sub topic
+                    publish_to_second_topic(processed_data, project_id, second_topic, table_name)
+
+        except Exception as db_error:
+            print(f"Error connecting to the database: {db_error}")
+        finally:
+            if connection:
+                connection.close()
+
+    except Exception as e:
+        print(f"Error processing the message: {e}")
+
+def format_data(rows, table_name):
+    """Format data based on table_name."""
+    if table_name == "customers":
+        return [{"id": row[0], "name": row[1], "contactNo": row[2], "location": row[3], "creation_date": row[4]} for row in rows]
+    elif table_name == "products":
+        return [{"id": row[0], "product_name": row[1], "product_desc": row[2], "price": row[3], "in_stock": row[4], "launch_date": row[5]} for row in rows]
+    elif table_name == "orders":
+        return [{"order_id": row[0], "cust_id": row[1], "product_id": row[2], "product_qty": row[3], "total_price": row[4], "order_date": row[5]} for row in rows]
+    else:
+        return []
+
+def convert_datetimes_to_strings(obj):
+    """Recursively convert all datetime, date, and Decimal objects in the input to JSON-compatible types."""
+    if isinstance(obj, dict):
+        return {key: convert_datetimes_to_strings(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_datetimes_to_strings(value) for value in obj]
+    elif isinstance(obj, (datetime, date)):
+        return obj.isoformat()  # Convert both datetime and date to ISO format string
+    elif isinstance(obj, decimal.Decimal):
+        return float(obj)  # Convert Decimal to float
+    return obj
+
+def publish_to_second_topic(data, project_id, topic, table_name):
+    """Publish processed data to the specified Pub/Sub topic."""
+    try:
+        # Add the table_name field to the payload
+        payload = {
+            "table_name": table_name,  # Add table_name to the payload
+            "data": convert_datetimes_to_strings(data)  # Convert datetime and Decimal objects
+        }
+
+        # Create a Pub/Sub topic path using project_id and topic
+        topic_path = publisher.topic_path(project_id, topic)
+        message = json.dumps(payload).encode("utf-8")  # Corrected: Encode the full payload
+
+        # Publish the message to the topic
+        future = publisher.publish(topic_path, data=message)
+        future.result()  # Block until the message is published
+        print(f"Published processed data with table_name '{table_name}' to {topic} in project {project_id}")
+
+    except Exception as e:
+        print(f"Error publishing to topic {topic} in project {project_id}: {e}")
+
+========================================================
+main.py
+from google.cloud import pubsub_v1
+import base64
+import json
+import pymysql
+from datetime import datetime, date
+import decimal
+import pytz
+
+publisher = pubsub_v1.PublisherClient()
+
+def main(event, context):
+    """Main function to handle incoming event from Pub/Sub."""
+    try:
+        # Decode Pub/Sub message
+        message = base64.b64decode(event['data']).decode('utf-8')
+        db_details = json.loads(message)
+
+        # Extract details from payload
+        project_id = db_details.get("project_id")
+        db_host = db_details.get("db_host")
+        db_user = db_details.get("db_user")
+        db_password = db_details.get("db_password")
+        db_name = db_details.get("db_name")
+        table_name = db_details.get("table_name")
+        operation = db_details.get("operation")
+        second_topic = db_details.get("second_topic")
+        fetch_all = db_details.get("fetch_all", False)
+
+        print(f"Connecting to DB: {db_name} at {db_host} with user {db_user}")
+        print(f"Second Pub/Sub Topic: {second_topic}")
+        print(f"Project ID: {project_id}, Table: {table_name}")
+
+        # Connect to MySQL
+        connection = None
+        try:
+            connection = pymysql.connect(
+                host=db_host,
+                user=db_user,
+                password=db_password,
+                database=db_name
+            )
+            print("Database connection successful.")
+
+            # Perform the requested operation (fetch data)
+            if operation == "fetch":
+                with connection.cursor() as cursor:
+                    # Dynamically construct query based on table_name and fetch_all flag
+                    if fetch_all:  # If fetch_all is True, fetch entire data
+                        print("Fetching all data from the source table.")
+                        if table_name == "customers":
+                            query = f"""
+                                SELECT id, name, contactNo, location, creation_date 
+                                FROM {table_name};
+                            """
+                        elif table_name == "products":
+                            query = f"""
+                                SELECT id, product_name, product_desc, price, in_stock, launch_date 
+                                FROM {table_name};
+                            """
+                        elif table_name == "orders":
+                            query = f"""
+                                SELECT order_id, cust_id, product_id, product_qty, total_price, order_date 
+                                FROM {table_name};
+                            """
+                        else:
+                            print(f"Unknown table: {table_name}")
+                            return
+                    else:  # Default to time-based filtering
+                        
+                        print(f"Fetching data modified within the last 1 hours from {table_name}.")
+                        from datetime import datetime, timedelta
+                        ist_timezone = pytz.timezone('Asia/Kolkata')
+                        current_ist_time = datetime.now(ist_timezone)
+                        time_ist = (current_ist_time - timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+                        # time = (datetime.utcnow() - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
+                        # time = (datetime.utcnow() - timedelta(minutes=1)).strftime('%Y-%m-%d %H:%M:%S')
+                        print(f"Calculated IST time for the query: {time_ist}")
+
+                        if table_name == "customers":
+                            query = f"""
+                                SELECT id, name, contactNo, location, creation_date 
+                                FROM {table_name} 
+                                WHERE creation_date >= '{time_ist}';
+                            """
+                            print(query)
+                        elif table_name == "products":
+                            query = f"""
+                                SELECT id, product_name, product_desc, price, in_stock, launch_date 
+                                FROM {table_name} 
+                                WHERE launch_date >= '{time_ist}';
+                            """
+                        elif table_name == "orders":
+                            query = f"""
+                                SELECT order_id, cust_id, product_id, product_qty, total_price, order_date 
+                                FROM {table_name} 
+                                WHERE order_date >= '{time_ist}';
+                            """
+                        else:
+                            print(f"Unknown table: {table_name}")
+                            return
+                    
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
+
+                    # Format data for the second Pub/Sub topic
+                    processed_data = format_data(rows, table_name)
+
+                    # Publish data to the second Pub/Sub topic
+                    publish_to_second_topic(processed_data, project_id, second_topic, table_name)
+
+        except Exception as db_error:
+            print(f"Error connecting to the database: {db_error}")
+        finally:
+            if connection:
+                connection.close()
+
+    except Exception as e:
+        print(f"Error processing the message: {e}")
+
+def format_data(rows, table_name):
+    """Format data based on table_name."""
+    if table_name == "customers":
+        return [{"id": row[0], "name": row[1], "contactNo": row[2], "location": row[3], "creation_date": row[4]} for row in rows]
+    elif table_name == "products":
+        return [{"id": row[0], "product_name": row[1], "product_desc": row[2], "price": row[3], "in_stock": row[4], "launch_date": row[5]} for row in rows]
+    elif table_name == "orders":
+        return [{"order_id": row[0], "cust_id": row[1], "product_id": row[2], "product_qty": row[3], "total_price": row[4], "order_date": row[5]} for row in rows]
+    else:
+        return []
+
+def convert_datetimes_to_strings(obj):
+    """Recursively convert all datetime, date, and Decimal objects in the input to JSON-compatible types."""
+    if isinstance(obj, dict):
+        return {key: convert_datetimes_to_strings(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_datetimes_to_strings(value) for value in obj]
+    elif isinstance(obj, (datetime, date)):
+        return obj.isoformat()  # Convert both datetime and date to ISO format string
+    elif isinstance(obj, decimal.Decimal):
+        return float(obj)  # Convert Decimal to float
+    return obj
+
+def publish_to_second_topic(data, project_id, topic, table_name):
+    """Publish processed data to the specified Pub/Sub topic."""
+    try:
+        # Add the table_name field to the payload
+        payload = {
+            "table_name": table_name,  # Add table_name to the payload
+            "data": convert_datetimes_to_strings(data)  # Convert datetime and Decimal objects
+        }
+
+        # Create a Pub/Sub topic path using project_id and topic
+        topic_path = publisher.topic_path(project_id, topic)
+        message = json.dumps(payload).encode("utf-8")  # Corrected: Encode the full payload
+
+        # Publish the message to the topic
+        future = publisher.publish(topic_path, data=message)
+        future.result()  # Block until the message is published
+        print(f"Published processed data with table_name '{table_name}' to {topic} in project {project_id}")
+
+    except Exception as e:
+        print(f"Error publishing to topic {topic} in project {project_id}: {e}")
+
+========================================================
+requirements.txt
+--------------
+functions-framework==3.*
+google-cloud-pubsub
+Flask
+pymysql
+cryptography
+pytz
+======================
+
+schedulers
+{
+    "project_id": "cs-host-250323f4c1e749beab0804",
+    "db_host": "35.200.158.52",
+    "db_user": "root",
+    "db_password": "Innominds@123",
+    "db_name": "customerdb",
+    "table_name": "customers",
+    "operation": "fetch",
+    "second_topic": "populate-bigquery-topic",
+    "fetch_all": false
+}
