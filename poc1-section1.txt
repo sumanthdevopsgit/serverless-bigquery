@@ -56,9 +56,9 @@ fake = Faker(['en_US'])  # Use American locale
 
 # Database connection details
 db_config = {
-    "host": "35.200.158.52",       # Replace with your Cloud SQL host
-    "user": "root",           # Replace with your username
-    "password": "Innominds@123",     # Replace with your password
+    "host": "",       # Replace with your Cloud SQL host
+    "user": "",           # Replace with your username
+    "password": "",     # Replace with your password
     "database": "customerdb"  # Replace with your database name
 }
 
@@ -123,9 +123,9 @@ fake = Faker()
 
 # Database connection details
 db_config = {
-    "host": "34.93.65.3",       # Replace with your Cloud SQL host
-    "user": "root",       # Replace with your username
-    "password": "Innominds@123", # Replace with your password
+    "host": "",       # Replace with your Cloud SQL host
+    "user": "",       # Replace with your username
+    "password": "", # Replace with your password
     "database": "productdb"        # Replace with your database name
 }
 
@@ -195,9 +195,9 @@ import random
 
 # Database connection details
 db_config = {
-    "host": "34.100.174.201",       # Replace with your Cloud SQL host
-    "user": "root",       # Replace with your username
-    "password": "Innominds@123", # Replace with your password
+    "host": "3",       # Replace with your Cloud SQL host
+    "user": "",       # Replace with your username
+    "password": "23", # Replace with your password
     "database": "orderdb"          # Replace with your database name
 }
 
@@ -582,9 +582,9 @@ pytz
 schedulers
 {
     "project_id": "cs-host-250323f4c1e749beab0804",
-    "db_host": "35.200.158.52",
-    "db_user": "root",
-    "db_password": "Innominds@123",
+    "db_host": "3.52",
+    "db_user": "rt",
+    "db_password": "23",
     "db_name": "customerdb",
     "table_name": "customers",
     "operation": "fetch",
